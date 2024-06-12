@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<style>
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    width: auto;
+    height: 500px;
+    position: relative;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    position: center;
+  }
+
+  text {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  .toolTip {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    position: absolute;
+    display: none;
+    width: auto;
+    height: auto;
+    background: none repeat scroll 0 0 white;
+    border: 0 none;
+    border-radius: 8px 8px 8px 8px;
+    box-shadow: -3px 3px 15px #aca9a9;
+    color: black;
+    font: 12px sans-serif;
+    padding: 5px;
+    text-align: center;
+  }
+
+  .legend {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 60%;
+  }
+
+  text {
+    font: 10px sans-serif;
+  }
+
+  .axis text {
+    font: 10px sans-serif;
+  }
+
+  .axis path {
+    fill: none;
+    stroke: #000;
+  }
+
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  .x.axis path {
+    display: none;
+  }
+
+  .button-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .custom-button {
+    padding: 10px 20px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .custom-button:hover {
+    background-color: #45a049;
+  }
+</style>
+
+<body>
+  <title>Visualization 2</title>
+  <h2 style="text-align: center;">
+    Pecentages of states rely more on federal funding compared to state and
+    local funding
+  </h2>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.7.0/d3-legend.min.js"></script>
+  <script>
+    function wrap(text, widths) {
+      text.each(function () {
+        var text = d3.select(this),
+          words = text.text().split(/\s+/).reverse(),
+          word,
+          line = [],
+          lineNumber = 0,
+          lineHeight = 1.1, // ems
+          y = text.attr("y"),
+          dy = parseFloat(text.attr("dy")),
+          tspan = text
+            .text(null)
+            .append("tspan")
+            .attr("x", 0)
+            .attr("y", y)
+            .attr("dy", dy + "em");
+        while ((word = words.pop())) {
+          line.push(word);
+          tspan.text(line.join(" "));
+          if (tspan.node().getComputedTextLength() > widths) {
+            line.pop();
+            tspan.text(line.join(" "));
+            line = [word];
+            tspan = text
+              .append("tspan")
+              .attr("x", 0)
+              .attr("y", y)
+              .attr("dy", ++lineNumber * lineHeight + dy + "em")
+              .text(word);
+          }
+        }
+      });
+    }
+    dataset = [
+      {
+        label: "Alabama",
+        "Federal Revenue": 10.89,
+        "Local Revenue": 31.63,
+        "State Revenue": 57.49,
+      },
+      {
+        label: "Alaska",
+        "Federal Revenue": 14.63,
+        "Local Revenue": 23.18,
+        "State Revenue": 62.19,
+      },
+      {
+        label: "Arizona",
+        "Federal Revenue": 11.96,
+        "Local Revenue": 45.91,
+        "State Revenue": 42.13,
+      },
+      {
+        label: "Arkansas",
+        "Federal Revenue": 11.28,
+        "Local Revenue": 16.62,
+        "State Revenue": 72.09,
+      },
+      {
+        label: "California",
+        "Federal Revenue": 10.37,
+        "Local Revenue": 34.12,
+        "State Revenue": 55.5,
+      },
+      {
+        label: "Colorado",
+        "Federal Revenue": 6.87,
+        "Local Revenue": 50.51,
+        "State Revenue": 42.62,
+      },
+      {
+        label: "Delaware",
+        "Federal Revenue": 7.35,
+        "Local Revenue": 31.47,
+        "State Revenue": 61.18,
+      },
+      {
+        label: "Florida",
+        "Federal Revenue": 10.27,
+        "Local Revenue": 47.76,
+        "State Revenue": 41.97,
+      },
+      {
+        label: "Georgia",
+        "Federal Revenue": 8.91,
+        "Local Revenue": 45.52,
+        "State Revenue": 45.57,
+      },
+      {
+        label: "Hawaii",
+        "Federal Revenue": 10.31,
+        "Local Revenue": 2.32,
+        "State Revenue": 87.37,
+      },
+      {
+        label: "Idaho",
+        "Federal Revenue": 10.37,
+        "Local Revenue": 27.71,
+        "State Revenue": 61.91,
+      },
+      {
+        label: "Indiana",
+        "Federal Revenue": 6.88,
+        "Local Revenue": 40.47,
+        "State Revenue": 52.65,
+      },
+      {
+        label: "Kansas",
+        "Federal Revenue": 7.3,
+        "Local Revenue": 35.27,
+        "State Revenue": 57.44,
+      },
+      {
+        label: "Kentucky",
+        "Federal Revenue": 11.34,
+        "Local Revenue": 31.07,
+        "State Revenue": 57.59,
+      },
+      {
+        label: "Louisiana",
+        "Federal Revenue": 14.7,
+        "Local Revenue": 39.9,
+        "State Revenue": 45.4,
+      },
+      {
+        label: "Oregon",
+        "Federal Revenue": 8.55,
+        "Local Revenue": 41.11,
+        "State Revenue": 50.34,
+      },
+      {
+        label: "Michigan",
+        "Federal Revenue": 7.88,
+        "Local Revenue": 36.9,
+        "State Revenue": 55.21,
+      },
+      {
+        label: "Missouri",
+        "Federal Revenue": 8.41,
+        "Local Revenue": 48.38,
+        "State Revenue": 43.2,
+      },
+      {
+        label: "Nevada",
+        "Federal Revenue": 7.5,
+        "Local Revenue": 32.64,
+        "State Revenue": 59.87,
+      },
+      {
+        label: "New Jersey",
+        "Federal Revenue": 4.27,
+        "Local Revenue": 56.74,
+        "State Revenue": 38.99,
+      },
+      {
+        label: "New York",
+        "Federal Revenue": 6.12,
+        "Local Revenue": 51.72,
+        "State Revenue": 40,
+      },
+      {
+        label: "Ohio",
+        "Federal Revenue": 6.12,
+        "Local Revenue": 51.72,
+        "State Revenue": 42.16,
+      },
+      {
+        label: "Texas",
+        "Federal Revenue": 10.36,
+        "Local Revenue": 50.29,
+        "State Revenue": 39.35,
+      },
+      {
+        label: "Washington",
+        "Federal Revenue": 8.09,
+        "Local Revenue": 29.89,
+        "State Revenue": 62.01,
+      },
+    ];
+    var margin = {
+      top: parseInt(d3.select("body").style("height"), 10) / 20,
+      right: parseInt(d3.select("body").style("width"), 10) / 20,
+      bottom: parseInt(d3.select("body").style("height"), 10) / 6,
+      left: parseInt(d3.select("body").style("width"), 10) / 20,
+    },
+      widths =
+        parseInt(d3.select("body").style("width"), 10) -
+        margin.left -
+        margin.right,
+      heights =
+        parseInt(d3.select("body").style("height"), 10) -
+        margin.top -
+        margin.bottom;
+    var x = d3.scale.ordinal().rangeRoundBands([0, widths], 0.1, 0.3);
+    var y = d3.scale.linear().rangeRound([heights, 0]);
+    var colorRange = d3.scale.category20();
+    var color = d3.scale.ordinal().range(colorRange.range());
+    var xAxis = d3.svg.axis().scale(x).orient("bottom");
+    var yAxis = d3.svg
+      .axis()
+      .scale(y)
+      .orient("left")
+      .tickFormat(d3.format(".2s"));
+    var svgs = d3
+      .select("body")
+      .append("svg")
+      .attr("width", widths + margin.left + margin.right)
+      .attr("height", heights + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var divTooltip = d3.select("body").append("div").attr("class", "toolTip");
+    color.domain(
+      d3.keys(dataset[0]).filter(function (key) {
+        return key !== "label";
+      })
+    );
+    dataset.forEach(function (d) {
+      var y0 = 0;
+      d.values = color.domain().map(function (name) {
+        return { name: name, y0: y0, y1: (y0 += +d[name]) };
+      });
+      d.total = d.values[d.values.length - 1].y1;
+    });
+    x.domain(
+      dataset.map(function (d) {
+        return d.label;
+      })
+    );
+    y.domain([
+      0,
+      d3.max(dataset, function (d) {
+        return d.total;
+      }),
+    ]);
+    svgs
+      .append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + heights + ")")
+      .call(xAxis);
+    svgs
+      .append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 9)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Percentage of total revenue %");
+    var bar = svgs
+      .selectAll(".label")
+      .data(dataset)
+      .enter()
+      .append("g")
+      .attr("class", "g")
+      .attr("transform", function (d) {
+        return "translate(" + x(d.label) + ",0)";
+      });
+    svgs.selectAll(".x.axis .tick text").call(wrap, x.rangeBand());
+
+    var bar_enter = bar
+      .selectAll("rect")
+      .data(function (d) {
+        return d.values;
+      })
+      .enter();
+
+    bar_enter
+      .append("rect")
+      .attr("width", x.rangeBand())
+      .attr("y", function (d) {
+        return y(d.y1);
+      })
+      .attr("height", function (d) {
+        return y(d.y0) - y(d.y1);
+      })
+      .style("fill", function (d) {
+        return color(d.name);
+      });
+
+    bar_enter
+      .append("text")
+      .text(function (d) {
+        return d3.format(".2s")(d.y1 - d.y0) + "%";
+      })
+      .attr("y", function (d) {
+        return y(d.y1) + (y(d.y0) - y(d.y1)) / 2;
+      })
+      .attr("x", x.rangeBand() / 3)
+      .style("fill", "black");
+
+    bar.on("mousemove", function (d) {
+      divTooltip.style("left", d3.event.pageX + 10 + "px");
+      divTooltip.style("top", d3.event.pageY - 25 + "px");
+      divTooltip.style("display", "inline-block");
+      var elements = document.querySelectorAll(":hover");
+      l = elements.length;
+      l = l - 1;
+      element = elements[l].__data__;
+      value = element.y1 - element.y0;
+      divTooltip.html(d.label + "<br>" + element.name + "<br>" + value + "%");
+    });
+    bar.on("mouseout", function (d) {
+      divTooltip.style("display", "none");
+    });
+    svgs
+      .append("g")
+      .attr("class", "legendLinear")
+      .attr("transform", "translate(0," + (heights + 30) + ")");
+    var legend = d3.legend
+      .color()
+      .shapeWidth(heights / 4)
+      .shapePadding(10)
+      .orient("horizontal")
+      .scale(color);
+    svgs.select(".legendLinear").call(legend);
+  </script>
+
+  <style>
+    .container1 {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+      padding-bottom: 40px;
+    }
+  </style>
+  <div class="container1">
+    <button style="
+        background-color: #4caf50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+      ">
+      <a href="Visualization1.html" style="text-decoration: none; color: #ffffff">Next Visualization</a>
+    </button>
+</body>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Visualization 2</title>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .chart-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    .chart-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .pie-chart {
+      width: 400px;
+      height: 400px;
+    }
+
+    .slice-label {
+      font-size: 12px;
+      fill: white;
+      text-anchor: middle;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-right: 10px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .custom-button {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: left;
+    }
+
+    .custom-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chart-container">
+    <h1>
+      Exploring the Role of Federal, State, and Local Funding in Educational
+      Financing
+    </h1>
+    <h2 class="chart-title">
+      Comparison 4 types of Expenditure from 1993 to 2016
+    </h2>
+    <div>
+      <label for="year-select">Choose a year:</label>
+      <select id="year-select"></select>
+    </div>
+    <svg id="chart" class="pie-chart"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <script>
+    // Set up the dimensions and radius of the pie chart
+    const width = 400;
+    const height = 400;
+    const radius = Math.min(width, height) / 2;
+
+    // Set up the color scale
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // Create the arc generator
+    const arc = d3
+      .arc()
+      .innerRadius(0)
+      .outerRadius(radius)
+      .cornerRadius(6)
+      .padAngle(0.02);
+
+    // Create the SVG element
+    const svg = d3
+      .select("#chart")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+    // Load the CSV data
+    d3.csv("states.csv").then(function (data) {
+      // Extract the relevant attributes
+      const attributes = [
+        { name: "INSTRUCTION_EXPENDITURE", label: "Instruction" },
+        { name: "SUPPORT_SERVICES_EXPENDITURE", label: "Support Services" },
+        { name: "OTHER_EXPENDITURE", label: "Others" },
+        { name: "CAPITAL_OUTLAY_EXPENDITURE", label: "Capital Outlay" },
+      ];
+
+      // Extract the years from the dataset
+      const years = Array.from(new Set(data.map((d) => d.YEAR)));
+      const filteredYears = years.filter((year) => year !== "1992");
+
+      // Populate the year select dropdown
+      const yearSelect = d3.select("#year-select");
+      yearSelect
+        .selectAll("option")
+        .data(filteredYears)
+        .enter()
+        .append("option")
+        .text((d) => d)
+        .attr("value", (d) => d);
+
+      // Generate the pie slices
+      const slices = svg
+        .selectAll("path")
+        .data(attributes)
+        .enter()
+        .append("path")
+        .attr("d", arc)
+        .attr("fill", (d, i) => color(i))
+        .attr("stroke", "white")
+        .attr("stroke-width", 2)
+        .on("mouseover", handleMouseOver)
+        .on("mouseout", handleMouseOut);
+
+      // Add labels with values and attributes to each slice
+      const sliceLabels = svg
+        .selectAll("text")
+        .data(attributes)
+        .enter()
+        .append("text")
+        .attr("transform", (d) => `translate(${arc.centroid(arcData(d))})`)
+        .attr("dy", ".35em")
+        .text("")
+        .attr("class", "slice-label");
+
+      // Create the year selection
+      yearSelect.on("change", updatePieChart);
+
+      // Function to format the values with commas
+      function formatValue(value) {
+        return d3.format(".2s")(value).replace(/G/, "B");
+      }
+
+      // Function to generate arc data for labels
+      function arcData(d) {
+        const arcGenerator = d3.arc().innerRadius(0).outerRadius(radius);
+        const centroid = arcGenerator.centroid(d);
+        const midAngle = Math.atan2(centroid[1], centroid[0]);
+        return { startAngle: midAngle, endAngle: midAngle };
+      }
+
+      // Function to handle mouseover event on slices
+      function handleMouseOver(d, i) {
+        d3.select(this).attr("opacity", 0.7);
+      }
+
+      // Function to handle mouseout event on slices
+      function handleMouseOut(d, i) {
+        d3.select(this).attr("opacity", 1);
+      }
+
+      // Function to update the pie chart based on the selected year
+      function updatePieChart() {
+        const yearValue = +yearSelect.property("value");
+
+        // Filter data based on the selected year
+        const filteredData = data.filter((d) => +d.YEAR === yearValue);
+
+        // Calculate total values for each attribute
+        const attributeTotals = attributes.map((attribute) => ({
+          label: attribute.label,
+          total: d3.sum(filteredData, (d) => +d[attribute.name] || 0),
+        }));
+
+        // Generate the pie chart data
+        const arcs = d3
+          .pie()
+          .value((d) => d.total)
+          .sort(null)(attributeTotals);
+
+        // Update the slices and labels with new data
+        slices
+          .data(arcs)
+          .transition()
+          .duration(500)
+          .attr("d", arc)
+          .attr("fill", (d, i) => color(i))
+          .attr("stroke", "white")
+          .attr("stroke-width", 2);
+
+        sliceLabels
+          .data(arcs)
+          .transition()
+          .duration(500)
+          .attr("transform", (d) => `translate(${arc.centroid(d)})`)
+          .text((d) => formatValue(d.data.total));
+
+        // Update the legend
+        const legend = d3
+          .select("#legend")
+          .selectAll(".legend-item")
+          .data(attributeTotals);
+
+        // Remove exiting legend items
+        legend.exit().remove();
+
+        // Add new legend items
+        const newLegendItems = legend
+          .enter()
+          .append("div")
+          .attr("class", "legend-item");
+
+        newLegendItems
+          .append("div")
+          .attr("class", "legend-color")
+          .style("background-color", (d, i) => color(i));
+
+        newLegendItems
+          .append("div")
+          .attr("class", "legend-label")
+          .text((d) => `${d.label}: ${formatValue(d.total)}`);
+
+        // Merge the new and existing legend items
+        const mergedLegendItems = newLegendItems.merge(legend);
+
+        // Update the legend labels
+        mergedLegendItems
+          .select(".legend-label")
+          .text((d) => `${d.label}: ${formatValue(d.total)}`);
+      }
+
+      // Initialize the chart with the first year
+      updatePieChart();
+    });
+  </script>
+</body>
+<style>
+  .container1 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 60px;
+    padding-bottom: 40px;
+  }
+</style>
+<div class="container1">
+  <button style="
+        background-color: #4caf50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+      ">
+    <a href="Visualization3.html" style="text-decoration: none; color: #ffffff">Next Visualization</a>
+  </button>
+
+</html>

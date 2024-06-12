@@ -1,0 +1,1523 @@
+<!-- Imtiaz Ahmad (1171102501) -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Visualization 1</title>
+    <style>
+        #container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+
+        #map {
+            flex: 1;
+        }
+
+        #line-chart {
+            flex: 1;
+            margin-left: 0px;
+        }
+
+        #bar-chart {
+            margin-right: 500px;
+        }
+
+
+        #scatter_plot {
+            flex: 1;
+            margin-left: 0;
+        }
+
+
+        #scatter_plot2 {
+            flex: 1;
+            margin-left: 0;
+        }
+
+        .legend {
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+        }
+
+
+        /* Add the following styles for the line chart */
+        .line {
+            fill: none;
+            stroke: #c20c0c;
+            /* Change the line color to a lighter shade */
+            stroke-width: 3px;
+            /* Reduce the line width to make it slim */
+        }
+
+        /* Add the following styles for the axis lines */
+        .x-axis line,
+        .y-axis line {
+            stroke-width: 10px;
+            /* Reduce the line width to make them slim */
+        }
+
+        #state-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            /* Added for vertical layout */
+            align-items: center;
+            justify-content: center;
+            padding-left: 50px;
+            /* Added for spacing */
+        }
+
+
+        #state-name {
+            font-size: 12px;
+        }
+
+        path {
+            stroke: white;
+            stroke-width: 0.5px;
+            fill: black;
+        }
+
+        .state-path {
+            stroke: white;
+            stroke-width: 0.5px;
+            transition: fill 0.3s ease;
+        }
+
+        .state-label {
+            font-size: 16px;
+            fill: rgb(0, 0, 0);
+            pointer-events: none;
+            text-anchor: middle;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: -100px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .legend-item span {
+            margin-left: 5px;
+        }
+
+        /* Add CSS styling for the tooltip */
+        .tooltip {
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+            opacity: 0;
+        }
+
+        /* CSS styles for the button */
+        #nev {
+            background-color: #139fc6;
+            /* Replace with your desired background color */
+            color: #FFFFFF;
+            /* Replace with your desired text color */
+            border: none;
+            border-radius: 5px;
+            padding: 5px 20px;
+            font-size: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 30px;
+        }
+
+        /* CSS styles for the arrow */
+        #nev::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 5px solid #FFFFFF;
+            /* Replace with your desired arrow color */
+            transition: all 0.3s ease;
+        }
+
+        /* CSS styles for the button animation on hover */
+        #nev:hover {
+            background-color: #0a42eb;
+            /* Replace with your desired hover background color */
+            color: #FFFFFF;
+            /* Replace with your desired hover text color */
+        }
+
+        /* CSS styles for the arrow animation on hover */
+        #nev:hover::after {
+            border-left-color: #FFFFFF;
+            /* Replace with your desired hover arrow color */
+            right: 5px;
+        }
+
+        #scatter_plot_button {
+            position: absolute;
+            top: -20px;
+            /* Adjust the top position as needed */
+            left: -80px;
+            /* Adjust the left position as needed */
+        }
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+</head>
+
+<body>
+    <h1><b>Elementary-Secondary education revenue & expenditure of each state in the USA</b></h1>
+    <div id="container">
+        <div id="map">
+            <button id="nev">Next Visualization</button>
+        </div>
+        <div id="line-chart">
+            <button id="overall-revenue-button">Total Revenue & Expenditure in USA</button>
+        </div>
+        <div id="bar-chart">
+            <span style="color: #ff7632;">TFEDREV</span>: Total Revenue from Federal Sources
+            <span style="color: #ffad32;">TSTREV</span>: Total Revenue from State Sources
+            <span style="color: #69c869;">TLOCREV</span>: Total Revenue from Local Sources
+        </div>
+        <div id="scatter_plot">
+            <button id="scatter_plot_button"
+                title="Click to view enrollment trend of selected Presidential Era">Enrollment trend</button>
+        </div>
+        <div id="scatter_plot2">
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const width = 600;
+        const height = 600;
+        const svg = d3.select("#map").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+        //.call(d3.zoom().on("zoom", zoomed));
+
+        const g = svg.append("g");
+
+        const projection = d3.geoAlbersUsa()
+            .translate([width / 2, height / 2]) // translate to center of screen
+            .scale([800]); // scale things down so see entire US
+
+        const path = d3.geoPath().projection(projection);
+
+        // Load the states data from CSV
+        d3.queue()
+            .defer(d3.csv, "states.csv") // First dataset
+            .defer(d3.csv, "districts.csv") // Second dataset
+            .await(function (error, data, districtsData) {
+                if (error) throw error;
+                var stateData = new Map();
+                // Convert state abbreviations to uppercase
+                data.forEach(function (d) {
+                    d.STATE = d.STATE.toUpperCase();
+                    var uRate = +d.TOTAL_REVENUE; // Convert the value to a number if needed
+                    stateData.set(d.STATE, uRate);
+                });
+
+                // Define the color scale
+                var colorScale = d3.scaleLinear()
+                    .domain([0, d3.max(Array.from(stateData.values()))])
+                    .range(["#ccc", "green"]); // Define the color range
+
+                // Create a color legend
+                var legendWidth = 200; // Replace with your desired width
+                var legendHeight = 20; // Replace with your desired height
+
+                var legend = d3.select("body")
+                    .append("svg")
+                    .attr("class", "legend")
+                    .attr("width", legendWidth)
+                    .attr("height", legendHeight);
+
+                // Define the number of color steps in the legend
+                var numColorSteps = 10;
+
+                // Calculate the maximum value from your data
+                var maxValue = d3.max(data, function (d) {
+                    return +d.TOTAL_REVENUE; // Replace with the appropriate field from your data
+                });
+
+                // Calculate the width of each color step
+                var stepWidth = legendWidth / numColorSteps;
+
+                // Create color rectangles for each step
+                for (var i = 0; i < numColorSteps; i++) {
+                    legend.append("rect")
+                        .attr("x", i * stepWidth)
+                        .attr("y", 0)
+                        .attr("width", stepWidth)
+                        .attr("height", legendHeight)
+                        .style("fill", colorScale(i * (maxValue / numColorSteps)));
+                }
+
+                // Add text labels for the minimum and maximum values
+                legend.append("text")
+                    .attr("class", "legend-label")
+                    .attr("x", 0)
+                    .attr("y", legendHeight + 15)
+                    .text("0");
+
+                legend.append("text")
+                    .attr("class", "legend-label")
+                    .attr("x", legendWidth - 20)
+                    .attr("y", legendHeight + 15)
+                    .text(maxValue);
+
+                // Load the US states JSON data
+                d3.json("https://gist.githubusercontent.com/Bradleykingz/3aa5206b6819a3c38b5d73cb814ed470/raw/a476b9098ba0244718b496697c5b350460d32f99/us-states.json", function (error, us) {
+                    if (error) throw error;
+
+                    // Merge the states data with the JSON data
+                    us.features.forEach(function (state) {
+                        const stateData = data.find(function (d) {
+                            return d.STATE === state.properties.name;
+                        });
+                        state.properties.data = stateData;
+                    });
+                    // Render the map
+                    const statePaths = g.selectAll('.state')
+                        .data(us.features)
+                        .enter()
+                        .append('g')
+                        .attr("class", "state")
+                        .on("click", function (d) {
+                            clicked(d);
+                            clicked2(d);
+                            clicked3(d);
+                        });
+
+
+                    statePaths.append('path')
+                        .attr("d", path)
+                        .attr("class", "state-path")
+                        .style("fill", function (d) {
+                            const stateName = d.properties.name.toUpperCase(); // Convert state name to uppercase
+                            const revenue = stateData.get(stateName); // Access revenue value using get() method
+                            return revenue ? colorScale(revenue) : "#ccc";
+                        });
+
+                    // Display state names on hover
+                    statePaths.append("text")
+                        .attr("class", "state-label")
+                        .attr("transform", function (d) {
+                            const centroid = path.centroid(d);
+                            const x = isNaN(centroid[0]) ? 0 : centroid[0]; // Check if centroid x-coordinate is NaN
+                            const y = isNaN(centroid[1]) ? 0 : centroid[1]; // Check if centroid y-coordinate is NaN
+                            return "translate(" + x + "," + y + ")";
+                        })
+                        .text(function (d) {
+                            const stateAbbreviations = {
+                                "ALABAMA": "AL",
+                                "ALASKA": "AK",
+                                "ARIZONA": "AZ",
+                                "ARKANSAS": "AR",
+                                "CALIFORNIA": "CA",
+                                "COLORADO": "CO",
+                                "CONNECTICUT": "CT",
+                                "DELAWARE": "DE",
+                                "FLORIDA": "FL",
+                                "GEORGIA": "GA",
+                                "HAWAII": "HI",
+                                "IDAHO": "ID",
+                                "ILLINOIS": "IL",
+                                "INDIANA": "IN",
+                                "IOWA": "IA",
+                                "KANSAS": "KS",
+                                "KENTUCKY": "KY",
+                                "LOUISIANA": "LA",
+                                "MAINE": "ME",
+                                "MARYLAND": "MD",
+                                "MASSACHUSETTS": "MA",
+                                "MICHIGAN": "MI",
+                                "MINNESOTA": "MN",
+                                "MISSISSIPPI": "MS",
+                                "MISSOURI": "MO",
+                                "MONTANA": "MT",
+                                "NEBRASKA": "NE",
+                                "NEVADA": "NV",
+                                "NEW HAMPSHIRE": "NH",
+                                "NEW JERSEY": "NJ",
+                                "NEW MEXICO": "NM",
+                                "NEW YORK": "NY",
+                                "NORTH CAROLINA": "NC",
+                                "NORTH DAKOTA": "ND",
+                                "OHIO": "OH",
+                                "OKLAHOMA": "OK",
+                                "OREGON": "OR",
+                                "PENNSYLVANIA": "PA",
+                                "RHODE ISLAND": "RI",
+                                "SOUTH CAROLINA": "SC",
+                                "SOUTH DAKOTA": "SD",
+                                "TENNESSEE": "TN",
+                                "TEXAS": "TX",
+                                "UTAH": "UT",
+                                "VERMONT": "VT",
+                                "VIRGINIA": "VA",
+                                "WASHINGTON": "WA",
+                                "WEST VIRGINIA": "WV",
+                                "WISCONSIN": "WI",
+                                "WYOMING": "WY"
+                            };
+
+                            const stateName = d.properties.name.toUpperCase();
+                            const stateAbbreviation = stateAbbreviations[stateName];
+                            return stateAbbreviation;
+                        });
+
+                    // Add event listeners for hover animation effect
+                    statePaths
+                        .on("mouseenter", function () {
+                            // Get the current state and its position
+                            const currentState = d3.select(this);
+                            const currentStatePath = currentState.select(".state-path");
+                            const currentStateLabel = currentState.select(".state-label");
+                            const currentStatePosition = currentStatePath.node().getBBox();
+
+                            // Apply animation to enlarge state
+                            currentStatePath
+                                .interrupt() // Stop any ongoing transitions
+                                .attr("transform-origin", `${currentStatePosition.x + currentStatePosition.width / 2}px ${currentStatePosition.y + currentStatePosition.height / 2}px`) // Set the transform origin to the center of the state
+                                .transition()
+                                .duration(300)
+                                .attr("transform", `scale(1.2)`); // Increase the scale value for a stronger zoom effect
+
+                            // Show state label
+                            currentStateLabel
+                                .transition()
+                                .duration(300)
+                                .style("opacity", 1);
+
+                            // Adjust the ordering of elements
+                            currentState.raise();
+                        })
+                        .on("mouseleave", function () {
+                            // Reset state to its original size
+                            d3.select(this)
+                                .select(".state-path")
+                                .interrupt() // Stop any ongoing transitions
+                                .transition()
+                                .duration(300)
+                                .attr("transform", "scale(1)");
+
+                            // Hide state label
+                            d3.select(this)
+                                .select(".state-label")
+                                .transition()
+                                .duration(300)
+                                .style("opacity", 0);
+                        });
+
+
+                    const margin = { top: 20, right: 20, bottom: 50, left: 100 };
+                    const chartWidth = 300;
+                    const chartHeight = 200;
+
+                    const chartContainer = d3.select("#line-chart");
+
+                    const chartSVG = chartContainer.append("svg")
+                        .attr("width", chartWidth + margin.left + margin.right)
+                        .attr("height", chartHeight + margin.top + margin.bottom);
+
+                    const chartGroup = chartSVG.append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                    // first line chart
+                    function clicked(d) {
+                        chartGroup.selectAll("*").remove();
+                        if (d == 'ov') {
+                            // Convert the data object to an array
+                            var dataArray = Object.values(data);
+                            var yearsArray = dataArray.map(function (d) { return d.YEAR; });
+
+                            // Create a Set to remove duplicate years
+                            var uniqueYearsSet = new Set(yearsArray);
+
+                            // Convert the Set back to an array
+                            var uniqueYearsArray = Array.from(uniqueYearsSet);
+
+                            // Filter the dataArray based on selected years
+                            var mergedData = dataArray.filter(function (d) {
+                                return uniqueYearsArray.includes(d.YEAR);
+                            });
+
+                            // Group the merged data by year and calculate the total revenue
+                            var groupedData = d3.nest()
+                                .key(function (d) { return d.YEAR; })
+                                .rollup(function (values) {
+                                    return {
+                                        YEAR: values[0].YEAR,
+                                        TOTAL_REVENUE: d3.sum(values, function (d) { return +d.TOTAL_REVENUE; }),
+                                        TOTAL_EXPENDITURE: d3.sum(values, function (d) { return +d.TOTAL_EXPENDITURE; })
+                                    };
+                                })
+                                .entries(mergedData);
+
+                            // Sort the groupedData based on year
+                            groupedData.sort(function (a, b) {
+                                return d3.ascending(a.key, b.key);
+                            });
+
+                            var filteredData = groupedData.filter(function (d) {
+                                return d.key !== 'undefined' && d.value.TOTAL_REVENUE !== 0 && !isNaN(d.value.TOTAL_REVENUE);
+                            });
+
+                            // Create an array of years, total revenues, and total expenditures from the filtered data
+                            var years = filteredData.map(function (d) { return d.key; });
+                            var revenues = filteredData.map(function (d) { return +d.value.TOTAL_REVENUE; });
+                            var expenditures = filteredData.map(function (d) { return +d.value.TOTAL_EXPENDITURE; });
+
+                            // Create the scales
+                            var xScale = d3.scaleBand()
+                                .domain(years)
+                                .range([0, chartWidth])
+                                .padding(0.1);
+
+                            var yScale = d3.scaleLinear()
+                                .domain([0, d3.max([d3.max(revenues), d3.max(expenditures)])])
+                                .range([chartHeight, 0]);
+
+                            const xAxis = d3.axisBottom(xScale)
+                                .tickValues([1995, 2000, 2005, 2010, 2015])
+                                .tickFormat(d3.format("d"))
+                                .tickSize(0);
+
+                            var yAxis = d3.axisLeft(yScale)
+                                .ticks(5)
+                                .tickSize(0);
+
+                            // Append the axes to the SVG container
+                            chartGroup.append("g")
+                                .attr("class", "x-axis")
+                                .attr("transform", "translate(0," + chartHeight + ")")
+                                .call(xAxis);
+
+                            chartGroup.append("g")
+                                .attr("class", "y-axis")
+                                .call(yAxis);
+                            // Set up color scales for the lines
+                            var color = d3.scaleOrdinal()
+                                .domain(["TOTAL_REVENUE", "TOTAL_EXPENDITURE"])
+                                .range(["red", "blue"]);
+
+                            var line = d3.line()
+                                .defined(function (d) { return !isNaN(d.value.TOTAL_REVENUE); })
+                                .x(function (d) { return xScale(d.key); })
+                                .y(function (d) { return yScale(d.value.TOTAL_REVENUE); });
+
+                            var expenditureLine = d3.line()
+                                .defined(function (d) { return !isNaN(d.value.TOTAL_EXPENDITURE); })
+                                .x(function (d) { return xScale(d.key); })
+                                .y(function (d) { return yScale(d.value.TOTAL_EXPENDITURE); })
+                                .curve(d3.curveLinear);
+
+                            chartGroup.append("path")
+                                .datum(filteredData)
+                                .attr("class", "line")
+                                .style("stroke", "green")
+                                .attr("d", line);
+
+                            chartGroup.append("path")
+                                .datum(filteredData)
+                                .attr("class", "line expenditure-line")
+                                .style("stroke", "red")
+                                .attr("d", expenditureLine);
+
+                            chartGroup.selectAll(".dot-revenue")
+                                .data(filteredData.filter(function (d) { return d.key !== '0'; })) // Filter out the data point where the year is 0
+                                .enter()
+                                .append("circle")
+                                .attr("class", "dot dot-revenue")
+                                .attr("cx", function (d) { return xScale(d.key); })
+                                .attr("cy", function (d) { return yScale(d.value.TOTAL_REVENUE); })
+                                .attr("r", 3)
+                                .transition()
+                                .duration(10) // Set duration of the animation in milliseconds
+                                .delay((d, i) => i * 100) // Add delay based on index to stagger the animation
+                                .attr("r", 1);
+
+                            chartGroup.selectAll(".dot-expenditure")
+                                .data(filteredData.filter(function (d) { return d.key !== '0'; }))
+                                .enter()
+                                .append("circle")
+                                .attr("class", "dot dot-expenditure")
+                                .attr("cx", function (d) { return xScale(d.key); })
+                                .attr("cy", function (d) { return yScale(d.value.TOTAL_EXPENDITURE); })
+                                .attr("r", 3)
+                                .style("stroke", "blue") // Set stroke color for the expenditure dots
+                                .style("stroke-dasharray", "3 3") // Set stroke-dasharray to create a dotted line effect
+                                .transition()
+                                .duration(10)
+                                .delay((d, i) => i * 100)
+                                .attr("r", 1);
+
+
+                            // Add title
+                            chartGroup.append("text")
+                                .attr("class", "chart-title")
+                                .attr("x", chartWidth / 2)
+                                .attr("y", -5)
+                                .attr("text-anchor", "middle")
+                                .text("Revenue and Expenditure Trend in USA");
+
+                            // Add x-label
+                            chartGroup.append("text")
+                                .attr("class", "x-label")
+                                .attr("x", chartWidth / 2)
+                                .attr("y", chartHeight + margin.top + margin.bottom - 40)
+                                .style("text-anchor", "middle")
+                                .text("Year");
+
+                            // Add y-label
+                            chartGroup.append("text")
+                                .attr("class", "y-label")
+                                .attr("transform", "rotate(-90)")
+                                .attr("x", -(chartHeight / 2))
+                                .attr("y", -margin.left + 20)
+                                .style("text-anchor", "middle")
+                                .text("Amount (in billions)");
+
+                            // Add legends for the lines
+                            var legendWidth = 20;
+                            var legendHeight = 10;
+
+                            chartGroup.append("rect")
+                                .attr("class", "legend")
+                                .attr("x", chartWidth - 120)
+                                .attr("y", yScale(revenues[revenues.length - 1]) + 180)
+                                .attr("width", legendWidth)
+                                .attr("height", legendHeight)
+                                .style("fill", "green");
+
+                            chartGroup.append("text")
+                                .attr("class", "legend")
+                                .attr("x", chartWidth - 90)
+                                .attr("y", yScale(revenues[revenues.length - 1]) + 190)
+                                .text("Total Revenue")
+                                .style("fill", "green");
+
+                            chartGroup.append("rect")
+                                .attr("class", "legend")
+                                .attr("x", chartWidth - 120)
+                                .attr("y", yScale(expenditures[expenditures.length - 1]) + 160)
+                                .attr("width", legendWidth)
+                                .attr("height", legendHeight)
+                                .style("fill", "red");
+
+                            chartGroup.append("text")
+                                .attr("class", "legend")
+                                .attr("x", chartWidth - 90)
+                                .attr("y", yScale(expenditures[expenditures.length - 1]) + 170)
+                                .text("Total Expenditure")
+                                .style("fill", "red");
+
+
+                        }
+                        else {
+                            let stateName;
+                            if (typeof d === "string") {
+                                stateName = d;
+                            } else {
+                                stateName = d.properties.name.toUpperCase();
+                            }
+
+                            const stateData = data.filter(item => item.STATE === stateName);
+
+                            // Define colors for the lines
+                            const lineColors = {
+                                TOTAL_REVENUE: "green",
+                                TOTAL_EXPENDITURE: "red"
+                            };
+                            // Capitalize the first word and convert the rest to lowercase
+                            sn = stateName.toLowerCase().replace(/\b\w/g, function (char) {
+                                return char.toUpperCase();
+                            });
+
+                            // Add title
+                            chartGroup.append("text")
+                                .attr("class", "chart-title")
+                                .attr("x", chartWidth / 2)
+                                .attr("y", -5)
+                                .attr("text-anchor", "middle")
+                                .text(`Total Revenue & Expenditure of`)
+                                .append("tspan")
+                                .attr("x", chartWidth / 4)
+                                .attr("dy", "1.2em")
+                                .text(`${sn}`);
+
+
+                            // Add x-label
+                            chartGroup.append("text")
+                                .attr("class", "x-label")
+                                .attr("x", chartWidth / 2)
+                                .attr("y", chartHeight + margin.top + margin.bottom - 40)
+                                .style("text-anchor", "middle")
+                                .text("Year");
+
+                            // Add y-label
+                            chartGroup.append("text")
+                                .attr("class", "y-label")
+                                .attr("transform", "rotate(-90)")
+                                .attr("x", -(chartHeight / 2))
+                                .attr("y", -margin.left + 20)
+                                .style("text-anchor", "middle")
+                                .text("Revenue (in billions)");
+
+                            const xScale = d3.scaleLinear()
+                                .range([0, chartWidth])
+                                .domain(d3.extent(stateData, d => +d.YEAR));
+
+                            const yScale = d3.scaleLinear()
+                                .range([chartHeight, 0])
+                                .domain([0, d3.max(stateData, d => Math.max(+d.TOTAL_REVENUE, +d.TOTAL_EXPENDITURE))]);
+
+                            const xAxis = d3.axisBottom(xScale)
+                                .ticks(6)
+                                .tickFormat(d3.format("d"))
+                                .tickSize(0);
+
+                            const yAxis = d3.axisLeft(yScale)
+                                .ticks(5)
+                                .tickSize(0);
+
+                            chartGroup.append("g")
+                                .attr("class", "x-axis")
+                                .attr("transform", `translate(0, ${chartHeight})`)
+                                .call(xAxis);
+
+                            chartGroup.append("g")
+                                .attr("class", "y-axis")
+                                .call(yAxis);
+
+                            const lineRevenue = d3.line()
+                                .x(d => xScale(+d.YEAR))
+                                .y(d => yScale(+d.TOTAL_REVENUE));
+
+                            chartGroup.append("path")
+                                .datum(stateData)
+                                .attr("class", "line line-revenue")
+                                .style("stroke", lineColors.TOTAL_REVENUE)
+                                .attr("d", lineRevenue);
+
+                            const lineExpenditure = d3.line()
+                                .x(d => xScale(+d.YEAR))
+                                .y(d => yScale(+d.TOTAL_EXPENDITURE));
+
+                            chartGroup.append("path")
+                                .datum(stateData)
+                                .attr("class", "line line-expenditure")
+                                .style("stroke", lineColors.TOTAL_EXPENDITURE)
+                                .attr("d", lineExpenditure);
+
+                            // Add legend
+                            const legend = chartGroup.append("g")
+                                .attr("class", "legend")
+                                .attr("transform", `translate(${chartWidth - 120}, ${chartHeight - 30})`);
+
+                            legend.append("rect")
+                                .attr("class", "legend-rect-revenue")
+                                .attr("width", 10)
+                                .attr("height", 10)
+                                .attr("y", 2)
+                                .attr("fill", lineColors.TOTAL_REVENUE);
+
+                            legend.append("text")
+                                .attr("class", "legend-text")
+                                .attr("x", 20)
+                                .attr("y", 10)
+                                .text("Total Revenue");
+
+                            legend.append("rect")
+                                .attr("class", "legend-rect-expenditure")
+                                .attr("width", 10)
+                                .attr("height", 10)
+                                .attr("y", 16)
+                                .attr("fill", lineColors.TOTAL_EXPENDITURE);
+
+                            legend.append("text")
+                                .attr("class", "legend-text")
+                                .attr("x", 20)
+                                .attr("y", 25)
+                                .text("Total Expenditure");
+
+                            chartGroup.selectAll(".dot-revenue")
+                                .data(stateData)
+                                .enter()
+                                .append("circle")
+                                .attr("class", "dot dot-revenue")
+                                .attr("cx", d => xScale(+d.YEAR))
+                                .attr("cy", d => yScale(+d.TOTAL_REVENUE))
+                                .attr("r", 3)
+                                .transition()
+                                .duration(10)
+                                .delay((d, i) => i * 100)
+                                .attr("r", 1);
+
+                            chartGroup.selectAll(".dot-expenditure")
+                                .data(stateData)
+                                .enter()
+                                .append("circle")
+                                .attr("class", "dot dot-expenditure")
+                                .attr("cx", d => xScale(+d.YEAR))
+                                .attr("cy", d => yScale(+d.TOTAL_EXPENDITURE))
+                                .attr("r", 3)
+                                .transition()
+                                .duration(10)
+                                .delay((d, i) => i * 100)
+                                .attr("r", 1);
+
+                        }
+                    }
+
+                    // Select the button element
+                    const button = document.getElementById('overall-revenue-button');
+
+                    // Add a click event listener to the button
+                    button.addEventListener('click', function () {
+                        // Handle the button click event
+                        clicked('ov');
+                        // Perform any desired actions here
+                    });
+
+                    // Select the button element
+                    const button1 = document.getElementById('scatter_plot_button');
+
+                    // Add a click event listener to the button
+                    button1.addEventListener('click', function () {
+                        // Handle the button click event
+                        clicked5();
+                        // Perform any desired actions here
+                    });
+
+                    // Get the button element by its id
+                    const button3 = document.getElementById("nev");
+
+                    // Add a click event listener to the button
+                    button3.addEventListener("click", function () {
+                        window.location.href = "Visualization2.html";
+                    });
+
+
+                    // ========================================================================
+
+                    const margin1 = { top: 20, right: 20, bottom: 50, left: 100 };
+                    const chartWidth1 = 200;
+                    const chartHeight1 = 200;
+
+                    const chartContainer1 = d3.select("#bar-chart");
+
+                    const chartSVG1 = chartContainer1.append("svg")
+                        .attr("width", chartWidth1 + margin1.left + margin1.right)
+                        .attr("height", chartHeight1 + margin1.top + margin1.bottom);
+
+                    const chartGroup1 = chartSVG1.append("g")
+                        .attr("transform", "translate(" + margin1.left + "," + margin1.top + ")");
+
+                    // Define an array of colors for the bars
+                    var colors = ["#ff7632", "#ffad32", "#69c869"];
+
+                    // second line chart
+                    function clicked2(d) {
+                        chartGroup1.selectAll("*").remove();
+                        let stateName;
+                        if (typeof d == "string") {
+                            stateName = d;
+                        }
+                        else {
+                            stateName = d.properties.name.toUpperCase();
+                        }
+                        // Find the corresponding data for the selected state
+                        var districts = districtsData.find(function (item) {
+                            return item.STATE.toUpperCase() === stateName;
+                        });
+
+                        var TFEDREVsum = 0;
+                        var TSTREVsum = 0;
+                        var TLOCREVsum = 0;
+                        districtsData.forEach(function (d) {
+                            if (d.STATE.toUpperCase() === stateName) {
+                                var x = +d.TFEDREV; // Convert the value to a number if needed
+                                var y = +d.TSTREV;
+                                var z = +d.TLOCREV;
+                                TFEDREVsum += x;
+                                TSTREVsum += y;
+                                TLOCREVsum += z;
+                            }
+                        });
+                        const data = [
+                            { label: "TFEDREV", value: TFEDREVsum },
+                            { label: "TSTREV", value: TSTREVsum },
+                            { label: "TLOCREV", value: TLOCREVsum }
+                        ];
+
+                        const xScale = d3.scaleBand()
+                            .range([0, chartWidth1])
+                            .domain(data.map(d => d.label))
+                            .padding(0.2);
+
+                        const yScale = d3.scaleLinear()
+                            .range([chartHeight1, 0])
+                            .domain([0, d3.max(data, d => d.value)]);
+
+                        const xAxis = d3.axisBottom(xScale)
+                            .tickSize(0);
+                        const yAxis = d3.axisLeft(yScale)
+                            .tickSize(0);
+
+                        chartGroup1.append("g")
+                            .attr("class", "x-axis")
+                            .attr("transform", `translate(0, ${chartHeight1})`)
+                            .call(xAxis);
+
+                        chartGroup1.append("g")
+                            .attr("class", "y-axis")
+                            .call(yAxis);
+
+                        chartGroup1.selectAll(".bar")
+                            .data(data)
+                            .enter()
+                            .append("rect")
+                            .attr("class", "bar")
+                            .attr('stroke', 'black')
+                            .attr('stroke-width', 0.5)
+                            .attr("x", d => xScale(d.label))
+                            .attr("y", chartHeight1) // Set initial y position at the bottom of the chart
+                            .attr("width", xScale.bandwidth())
+                            .attr("height", 0) // Set initial height to 0
+                            .attr("fill", (d, i) => colors[i])
+                            .transition() // Add transition
+                            .duration(1000) // Set duration of the animation in milliseconds
+                            .delay((d, i) => i * 100) // Add delay based on index to stagger the animation
+                            .attr("y", d => yScale(d.value)) // Animate the y position
+                            .attr("height", d => chartHeight1 - yScale(d.value)); // Animate the height
+
+
+                        chartGroup1.selectAll(".bar-label")
+                            .data(data)
+                            .enter()
+                            .append("text")
+                            .attr("class", "bar-label")
+                            .attr("x", d => xScale(d.label) + xScale.bandwidth() / 2)
+                            .attr("y", d => yScale(d.value) - 5)
+                            .attr("text-anchor", "middle")
+                            .text(d => d.value);
+
+                        // Add chart title
+                        chartGroup1.append("text")
+                            .attr("class", "chart-title")
+                            .attr("x", chartWidth1 / 2)
+                            .attr("y", -30)
+                            .attr("text-anchor", "middle")
+                            .text("Revenue Bar Chart");
+
+                        // Add x-label
+                        chartGroup1.append("text")
+                            .attr("class", "x-label")
+                            .attr("x", chartWidth / 4)
+                            .attr("y", chartHeight + margin.top + margin.bottom - 40)
+                            .style("text-anchor", "middle")
+                            .text("Total revenue sources" + " of " + stateName.toLowerCase());
+
+
+                        // Add y-label
+                        chartGroup1.append("text")
+                            .attr("class", "y-label")
+                            .attr("transform", "rotate(-90)")
+                            .attr("x", -(chartHeight / 2))
+                            .attr("y", -margin.left + 20)
+                            .style("text-anchor", "middle")
+                            .text("Revenue (in billions)");
+                    }
+
+                    //=======================================================================
+                    const chartWidth3 = 500;
+                    const chartHeight3 = 250;
+
+                    const margin3 = { top: 20, right: 80, bottom: 40, left: 100 };
+                    const width = chartWidth3 - margin3.left - margin3.right;
+                    const height = chartHeight3 - margin3.top - margin3.bottom;
+
+                    const chartContainer3 = d3.select("#scatter_plot")
+                        .style("position", "absolute")
+                        .style("right", "0")
+                        .style("bottom", "0");
+
+                    const chartSVG3 = chartContainer3.append("svg")
+                        .attr("width", chartWidth3)
+                        .attr("height", chartHeight3);
+
+                    const chartGroup3 = chartSVG3.append("g")
+                        .attr("transform", "translate(" + margin3.left + "," + margin3.top + ")");
+
+                    var x = d3.scaleLinear()
+                        .range([0, width]);
+                    var y = d3.scaleLinear()
+                        .range([height, 0]);
+
+                    var color = d3.scaleOrdinal(d3.schemeCategory10);
+                    var xAxis = d3.axisBottom(x)
+                        .ticks(24)
+                        .tickFormat(d3.format("d"))
+                        .tickPadding(10)
+                        .tickSize(0);
+
+                    var yAxis = d3.axisLeft(y)
+                        .tickFormat(d3.format("d"))
+                        .tickSize(0);
+
+                    function clicked3(d) {
+                        chartGroup3.selectAll("*").remove();
+                        let stateName;
+                        if (typeof d === "string") {
+                            stateName = d;
+                        } else {
+                            stateName = d.properties.name.toUpperCase();
+                        }
+                        const selectedState = stateName; // Replace "YOUR_SELECTED_STATE" with the actual selected state
+
+                        const filteredData = data.filter(d => d.STATE === selectedState && d.YEAR >= 1993 && d.YEAR <= 2016);
+
+                        const dataWithPresident = filteredData.map(d => ({
+                            ...d,
+                            PRESIDENT: (d.YEAR >= 1993 && d.YEAR <= 2001) ? 'Bill Clinton' :
+                                (d.YEAR >= 2001 && d.YEAR <= 2009) ? 'George W. Bush' :
+                                    (d.YEAR >= 2002 && d.YEAR <= 20016) ? 'Barack Obama' :
+                                        "None"
+                        }));
+                        const nestedData = d3.nest()
+                            .key(d => d.PRESIDENT)
+                            .key(d => d.YEAR)
+                            .rollup(values => d3.sum(values, d => d.TOTAL_REVENUE))
+                            .entries(dataWithPresident);
+
+                        const presidentsData = nestedData.map(d => ({
+                            PRESIDENT: d.key,
+                            REVENUE_BY_YEAR: d.values.map(yearData => ({
+                                YEAR: yearData.key,
+                                TOTAL_REVENUE: yearData.value
+                            }))
+                        }));
+
+                        var flattenedData = presidentsData.reduce(function (acc, president) {
+                            return acc.concat(president.REVENUE_BY_YEAR.map(function (d) {
+                                d.PRESIDENT = president.PRESIDENT;
+                                return d;
+                            }));
+                        }, []);
+                        x.domain(d3.extent(flattenedData, function (d) { return parseInt(d.YEAR); })).nice();
+                        x.domain([1993, 2016]);
+                        y.domain(d3.extent(flattenedData, function (d) { return parseInt(d.TOTAL_REVENUE); })).nice();
+
+
+                        chartGroup3.selectAll(".dot")
+                            .data(flattenedData)
+                            .enter().append("circle")
+                            .attr("class", "dot")
+                            .attr("cx", function (d) { return x(d.YEAR); })
+                            .attr("cy", function (d) { return y(d.TOTAL_REVENUE); })
+                            .style("fill", function (d) { return color(d.PRESIDENT); })
+                            .on("mouseover", showTooltip)
+                            .on("mouseout", hideTooltip)
+                            .transition() // Add transition
+                            .duration(10) // Set duration of the animation in milliseconds
+                            .delay((d, i) => i * 100) // Add delay based on index to stagger the animation
+                            .attr("r", 5); // Set the final radius
+
+                        // Add the x-axis to the chartGroup
+                        chartGroup3.append("g")
+                            .attr("class", "x axis")
+                            .attr("transform", "translate(0," + height + ")")
+                            .call(xAxis)
+                            .selectAll("text") // Select all the tick labels
+                            .attr("transform", "rotate(-90)") // Rotate the labels
+                            .attr("dx", "-0.8em") // Adjust the horizontal position
+                            .attr("dy", "-0.8em") // Adjust the vertical position
+                            .style("text-anchor", "end") // Set the text-anchor to "end" to align the labels correctly
+
+                        // Add the y-axis to the chartGroup
+                        chartGroup3.append("g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(-10, 0)")
+                            .call(yAxis)
+                            .append("text")
+                            .attr("class", "label")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", -60)
+                            .attr("x", -40)
+                            .style("text-anchor", "end")
+                            .text("Total Revenue");
+
+                        // Add x-axis line
+                        chartGroup3.append("line")
+                            .attr("class", "x-axis-line")
+                            .attr("x1", -10)
+                            .attr("x2", width)
+                            .attr("y1", height)
+                            .attr("y2", height)
+                            .style("stroke", "black");
+
+                        // Add legend
+                        const legend = chartGroup3.selectAll(".legend")
+                            .data(presidentsData)
+                            .enter()
+                            .append("g")
+                            .attr("class", "legend")
+                            .attr("transform", function (d, i) {
+                                const x = 10; // Horizontal position from the left
+                                const y = 10 + i * 20; // Vertical position, incrementing by 20 for each item
+                                return "translate(" + x + "," + y + ")";
+                            });
+
+                        legend
+                            .append("rect")
+                            .attr("class", "legend-color")
+                            .attr("x", 0)
+                            .attr("y", 0)
+                            .attr("width", 18)
+                            .attr("height", 18)
+                            .style("fill", function (d) { return color(d.PRESIDENT); })
+                            .style("opacity", 0) // Set initial opacity to 0
+                            .transition() // Add transition
+                            .duration(10) // Set duration of the animation in milliseconds
+                            .delay((d, i) => i * 100) // Add delay based on index to stagger the animation
+                            .style("opacity", 1); // Set the final opacity
+
+
+                        // Append the foreignObject element to the legend
+                        const buttons = legend.append("foreignObject")
+                            .attr("class", "legend-button")
+                            .attr("x", 8)
+                            .attr("y", -1)
+                            .attr("width", 110)
+                            .attr("height", 20)
+                            .style("cursor", "pointer")
+                            .html(function (d) {
+                                return '<button class="legend-button" style="background-color: transparent; border: none; position: relative;">' +
+                                    d.PRESIDENT +
+                                    '<span class="legend-underline" style="position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background-color: black;"></span>' +
+                                    '</button>';
+
+                            });
+                        buttons.selectAll("button")
+                            .style("background-color", "transparent")
+                            .style("border", "none")
+                            .style("transition", "color 0.3s ease");
+
+                        buttons.selectAll("button")
+                            .on("mouseover", function () {
+                                d3.select(this).style("color", "rgba(0, 0, 0, 0.5)");
+                            })
+                            .on("mouseout", function () {
+                                d3.select(this).style("color", "rgba(0, 0, 0, 1)");
+                            });
+
+                        // Wire up the click event for each button
+                        buttons.on("click", function (d) {
+                            clicked4(d, stateName); // Call the clicked4 function and pass the data (d)
+                        });
+
+                        buttons.dispatch("click", { detail: buttons.node() });
+
+                        // Add title
+                        chartGroup3.append("text")
+                            .attr("class", "chart-title")
+                            .attr("x", chartWidth3 / 3)
+                            .attr("y", -6)
+                            .attr("text-anchor", "middle")
+                            .text("Total Revenue Funded in the State During Presidential Terms");
+
+                        // Add the x-axis label
+                        chartSVG3.append("text")
+                            .attr("class", "x-axis-label")
+                            .attr("x", chartWidth3 / 2)
+                            .attr("y", chartHeight3 - margin3.bottom + 40)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", "12px")
+                            .text("Year");
+
+                        // Add the y-axis label
+                        chartSVG3.append("text")
+                            .attr("class", "y-axis-label")
+                            .attr("transform", "rotate(-90)")
+                            .attr("x", -chartHeight3 / 2)
+                            .attr("y", margin3.left / 3)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", "12px")
+                            .text("Revenue (in billions)");
+
+                        var tooltip = d3.select("body")
+                            .append("div")
+                            .attr("class", "tooltip")
+                            .style("opacity", 0);
+
+                        var tooltip = d3.select("body")
+                            .append("div")
+                            .attr("class", "tooltip")
+                            .style("opacity", 0);
+
+                        function showTooltip(d) {
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", 0.9);
+                            tooltip.html("<strong>President: </strong>" + d.PRESIDENT + "<br/>" +
+                                "<strong>Year: </strong>" + d.YEAR + "<br/>" +
+                                "<strong>Total Revenue: </strong>" + d.TOTAL_REVENUE)
+                                .style("left", (d3.event.pageX) + "px")
+                                .style("top", (d3.event.pageY) + "px");
+
+                        }
+
+                        function hideTooltip() {
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                        }
+                    }
+
+                    // ==========================================================================
+                    // Chart 4 dimensions and margins
+                    const chartWidth4 = 400;
+                    const chartHeight4 = 220;
+                    const chartMargin4 = { top: 20, right: 80, bottom: 30, left: 100 };
+
+                    // Chart container
+                    const chartContainer4 = d3.select("#scatter_plot2")
+                        .style("position", "absolute")
+                        .style("left", "39%")
+                        .style("transform", "translateX(50%)")
+                        .style("bottom", "50px")
+                        .style("transform", "translateY(40%)");
+
+                    // Create SVG
+                    const chartSVG4 = chartContainer4.append("svg")
+                        .attr("width", chartWidth4)
+                        .attr("height", chartHeight4);
+
+                    // Create chart group with margins
+                    const chartGroup4 = chartSVG4.append("g")
+                        .attr("transform", `translate(${chartMargin4.left},${chartMargin4.top})`);
+
+                    // Create scales
+                    const xScale = d3.scaleLinear()
+                        .range([0, chartWidth4 - chartMargin4.left - chartMargin4.right]);
+
+                    const yScale = d3.scaleLinear()
+                        .range([chartHeight4 - chartMargin4.top - chartMargin4.bottom, 0]);
+
+
+                    const xScale1 = d3.scaleLinear()
+                        .range([0, chartWidth4 - chartMargin4.left - chartMargin4.right]);
+
+                    const yScale1 = d3.scaleLinear()
+                        .range([chartHeight4 - chartMargin4.top - chartMargin4.bottom, 0]);
+
+
+                    // Create color scale
+                    const colorsc = d3.scaleOrdinal().range(colors);
+
+                    // Create legend container
+                    const legendContainer = chartContainer4.append("div")
+                        .attr("class", "legend");
+
+                    var FD = '';
+                    var PN = '';
+                    var COLOR = '';
+                    // Function to handle click event
+                    function clicked4(d, sn) {
+                        chartGroup4.selectAll("*").remove();
+                        var presidentName = d.PRESIDENT;
+                        let stateName;
+                        if (typeof sn === "string") {
+                            stateName = sn;
+                        } else {
+                            stateName = sn;
+                        }
+                        const filteredData = districtsData.filter(d => d.STATE.toUpperCase() === stateName && d.YRDATA >= 1993 && d.YRDATA <= 2016);
+
+                        const dataWithPresident = filteredData.map(d => ({
+                            ...d,
+                            PRESIDENT: (d.YRDATA >= 1993 && d.YRDATA <= 2001) ? 'Bill Clinton' :
+                                (d.YRDATA >= 2001 && d.YRDATA <= 2009) ? 'George W. Bush' :
+                                    (d.YRDATA >= 2002 && d.YRDATA <= 2016) ? 'Barack Obama' :
+                                        "None"
+                        }));
+
+                        const nestedData = d3.nest()
+                            .key(d => d.PRESIDENT)
+                            .key(d => d.YRDATA)
+                            .rollup(values => {
+                                const federalRevenue = d3.sum(values, d => d.TFEDREV);
+                                const stateRevenue = d3.sum(values, d => d.TSTREV);
+                                const localRevenue = d3.sum(values, d => d.TLOCREV);
+                                return {
+                                    FEDERAL: federalRevenue,
+                                    STATE: stateRevenue,
+                                    LOCAL: localRevenue,
+                                    TOTAL_REVENUE: federalRevenue + stateRevenue + localRevenue
+                                };
+                            })
+                            .entries(dataWithPresident);
+
+                        const presidentsData = nestedData.map(d => ({
+                            PRESIDENT: d.key,
+                            REVENUE_BY_YEAR: d.values.map(yearData => ({
+                                YEAR: yearData.key,
+                                FEDERAL: yearData.value.FEDERAL,
+                                STATE: yearData.value.STATE,
+                                LOCAL: yearData.value.LOCAL
+                            }))
+                        }));
+
+                        // Create an array of presidents
+                        const presidents = presidentsData.map(d => d.PRESIDENT);
+                        const Pdata = presidentsData.filter(d => d.PRESIDENT === presidentName);
+
+                        FD = dataWithPresident;
+                        PN = presidentName;
+
+                        // Set the domains for the scales
+                        xScale.domain(d3.extent(Pdata[0].REVENUE_BY_YEAR, d => +d.YEAR));
+                        // Set the domains for the scales
+                        const maxRevenue = d3.max(Pdata[0].REVENUE_BY_YEAR, d =>
+                            d3.max(Object.values(d).slice(1)) // Get the maximum value from all revenue types
+                        );
+                        yScale.domain([0, maxRevenue]);
+
+                        // Create scatter plot dots for each revenue type
+                        Object.keys(Pdata[0].REVENUE_BY_YEAR[0]).forEach(revenueType => {
+                            if (revenueType !== 'YEAR') {
+                                chartGroup4.selectAll(".dot-" + revenueType)
+                                    .data(Pdata[0].REVENUE_BY_YEAR)
+                                    .enter().append("circle")
+                                    .attr("class", "dot dot-" + revenueType)
+                                    .attr("cx", d => xScale(+d.YEAR))
+                                    .attr("cy", d => yScale(d[revenueType]))
+                                    .attr("r", 0)
+                                    .style("fill", colorsc(revenueType))
+                                    .style("opacity", 0) // Set initial opacity to 0
+                                    .transition()
+                                    .delay((d, i) => i * 100)
+                                    .duration(500)
+                                    .attr("r", 4)
+                                    .style("opacity", 1); // Set the final opacity to 1
+                            }
+                        });
+
+                        // Add x-axis
+                        chartGroup4.append("g")
+                            .attr("transform", `translate(0, ${chartHeight4 - chartMargin4.top - chartMargin4.bottom})`)
+                            .call(d3.axisBottom(xScale).ticks(7).tickFormat(d3.format("d")).tickPadding(10).tickSize(0));
+                        // Move x-axis line left
+                        chartGroup4.select(".domain") // Select the x-axis line
+                            .attr("transform", `translate(-10, 0)`); // Adjust the x-coordinate to move it left
+
+                        // Add y-axis
+                        chartGroup4.append("g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(-10, 0)")
+                            .call(d3.axisLeft(yScale).tickFormat(d3.format("d")).tickSize(0))
+                            .append("text")
+                            .attr("class", "label")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", -60)
+                            .attr("x", -40)
+                            .style("text-anchor", "end")
+                            .text("Total Revenue");
+
+                        // Add y-axis label
+                        chartGroup4.append("text")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", 0 - chartMargin4.left + 20)
+                            .attr("x", 0 - (chartHeight4 / 4))
+                            .attr("dy", "1em")
+                            .style("text-anchor", "middle")
+                            .text("Revenue");
+
+                        // Add x-label
+                        chartGroup4.append("text")
+                            .attr("class", "x-label")
+                            .attr("x", chartWidth4 / 4)
+                            .attr("y", -9)
+                            .style("text-anchor", "middle")
+                            .text("Sources of" + " revenue funded by " + presidentName);
+
+
+                        // Add x-axis label
+                        chartGroup4.append("text")
+                            .attr("transform", `translate(${(chartWidth4 - chartMargin4.left - chartMargin4.right) / 2}, ${chartHeight4 - chartMargin4.top})`)
+                            .style("text-anchor", "middle")
+                            .text("Year");
+
+                        // Add legends
+                        const legendItem = legendContainer.selectAll(".legend-item")
+                            .data(Object.keys(Pdata[0].REVENUE_BY_YEAR[0]).filter(revenueType => revenueType !== "YEAR"))
+                            .enter()
+                            .append("div")
+                            .attr("class", "legend-item");
+
+                        legendItem.append("div")
+                            .attr("class", "legend-color")
+                            .style("background-color", d => colorsc(d));
+
+
+                        legendItem.append("div")
+                            .text(d => d.toLowerCase()); // Convert legend text to lowercase
+
+                        // Adjust legend position
+                        legendContainer.style("position", "absolute")
+                            .style("bottom", "0")
+                            .style("left", "0");
+
+
+                        chartContainer4.style("bottom", (100 + legendContainer.node().getBoundingClientRect().height) + "px");
+                    }
+
+                    function clicked5() {
+                        chartGroup4.selectAll("*").remove();
+                        chartContainer4.selectAll('.legend-item').remove();
+                        dataWithPresident = FD;
+                        presidentName = PN;
+                        const dic_colors = {
+                            'Bill Clinton': "#4287f5",
+                            'George W. Bush': "#f5b642",
+                            'Barack Obama': "#289124"
+                        };
+                        var pColor = dic_colors[presidentName];
+                        const nestedData = d3.nest()
+                            .key(d => d.PRESIDENT)
+                            .key(d => d.YRDATA)
+                            .rollup(values => {
+                                const enroll = d3.sum(values, d => d.ENROLL);
+                                return {
+                                    Enrollment: enroll
+                                };
+                            })
+                            .entries(dataWithPresident);
+
+                        const presidentsData = nestedData.map(d => ({
+                            PRESIDENT: d.key,
+                            REVENUE_BY_YEAR: d.values.map(yearData => ({
+                                YEAR: yearData.key,
+                                ENROLL: yearData.value.Enrollment
+                            }))
+                        }));
+
+                        const presidents = presidentsData.map(d => d.PRESIDENT);
+                        const Pdata = presidentsData.filter(d => d.PRESIDENT === presidentName);
+                        console.log(Pdata);
+                        // Sort the data by year
+                        Pdata[0].REVENUE_BY_YEAR.sort((a, b) => a.YEAR - b.YEAR);
+
+                        // Define the x and y scales
+                        xScale1.domain(d3.extent(Pdata[0].REVENUE_BY_YEAR, d => d.YEAR));
+
+                        yScale1.domain([d3.min(Pdata[0].REVENUE_BY_YEAR, d => d.ENROLL), d3.max(Pdata[0].REVENUE_BY_YEAR, d => d.ENROLL)]);
+
+                        // Define the line generator
+                        const line = d3.line()
+                            .x(d => xScale1(d.YEAR))
+                            .y(d => yScale1(d.ENROLL));
+
+                        // Add x-axis
+                        chartGroup4.append("g")
+                            .attr("transform", `translate(0, ${chartHeight4 - chartMargin4.top - chartMargin4.bottom})`)
+                            .call(d3.axisBottom(xScale1).ticks(7).tickFormat(d3.format("d")).tickPadding(10).tickSize(0));
+
+                        // Move x-axis line left
+                        chartGroup4.select(".domain") // Select the x-axis line
+                            .attr("transform", `translate(-10, 0)`); // Adjust the x-coordinate to move it left
+
+                        // Add y-axis
+                        chartGroup4.append("g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(-10, 0)")
+                            .call(d3.axisLeft(yScale1).tickFormat(d3.format("d")).tickSize(0))
+                            .append("text")
+                            .attr("class", "label")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", -60)
+                            .attr("x", -40)
+                            .style("text-anchor", "end")
+                            .text("Total Revenue");
+
+                        // Draw the line
+                        chartGroup4.append("path")
+                            .datum(Pdata[0].REVENUE_BY_YEAR)
+                            .attr("class", "line")
+                            .attr("d", line)
+                            .attr("stroke-dasharray", function () { return this.getTotalLength() }) // Set the initial stroke-dasharray to the total length of the line
+                            .attr("stroke-dashoffset", function () { return this.getTotalLength() }) // Set the initial stroke-dashoffset to the total length of the line
+                            .transition() // Apply transition to animate the line
+                            .duration(1500) // Set the duration of the animation in milliseconds
+                            .attr("stroke-dashoffset", 0)// Animate the stroke-dashoffset to 0, revealing the entire line
+                            .style("stroke", pColor);
+
+                        // Add y-axis label
+                        chartGroup4.append("text")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", 0 - chartMargin4.left + 20)
+                            .attr("x", 0 - (chartHeight4 / 4))
+                            .attr("dy", "1em")
+                            .style("text-anchor", "middle")
+                            .text("Total Enrollment");
+
+                        // Add x-label
+                        chartGroup4.append("text")
+                            .attr("class", "x-label")
+                            .attr("x", chartWidth4 / 4)
+                            .attr("y", -9)
+                            .style("text-anchor", "middle")
+                            .text("Total Enrollment" + " during Term of " + presidentName);
+
+
+                        // Add x-axis label
+                        chartGroup4.append("text")
+                            .attr("transform", `translate(${(chartWidth4 - chartMargin4.left - chartMargin4.right) / 2}, ${chartHeight4 - chartMargin4.top})`)
+                            .style("text-anchor", "middle")
+                            .text("Year");
+
+                    };
+
+                    // preload data
+                    clicked("California".toUpperCase());
+                    clicked2("California".toUpperCase());
+                    clicked3("California".toUpperCase());
+
+                });
+            });
+    </script>
+</body>
+
+</html>
