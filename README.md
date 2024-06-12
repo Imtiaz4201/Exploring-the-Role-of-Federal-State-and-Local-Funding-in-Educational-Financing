@@ -12,9 +12,15 @@
 
 <h2>Visualizations</h2>
 <p>The project includes various visualizations to illustrate the data effectively:</p>
+Storyboard visualizing the Elementary Secondary education revenue & expenditure of each state in the USA.
 <img src="https://github.com/Imtiaz4201/Exploring-the-Role-of-Federal-State-and-Local-Funding-in-Educational-Financing/blob/main/Project_Interactive_Data_Visualization_Report_GroupBradi%20%5B6%5D.jpg">
-<p>Storyboard visualizing the Elementary Secondary education revenue & expenditure of each state in the USA</p>
 <hr>
+Compare four different types of expenditure from 1993 to 2016, showing the relative proportions and variations in spending habits.
 <img src="https://github.com/Imtiaz4201/Exploring-the-Role-of-Federal-State-and-Local-Funding-in-Educational-Financing/blob/main/Project_Interactive_Data_Visualization_Report_GroupBradi%20%5B5%5D.jpg ">
-<p>Compare four different types of expenditure from 1993 to 2016, showing the relative proportions and variations in spending habits.</p>
 <hr>
+Visualize the percentages of states that rely more on federal funding compared to state and local funding, highlighting the financial dependencies of each state.
+<img src="https://github.com/Imtiaz4201/Exploring-the-Role-of-Federal-State-and-Local-Funding-in-Educational-Financing/blob/main/Project_Interactive_Data_Visualization_Report_GroupBradi%20%5B8%5D.jpg">
+
+<h2>Conclusion</h2>
+<p>This project demonstrates the crucial role of federal, state, and local funding in supporting education. By presenting a detailed and interactive analysis of the financial contributions at different governmental levels, the project aims to enhance understanding of the financial dynamics in the education sector. The insights gained can help address funding imbalances and work towards a more equitable educational system.</p>
+
